@@ -1,5 +1,5 @@
-#ifndef _STRINGV_HPP
-#define _STRINGV_HPP
+#ifndef stringv_hpp
+#define stringv_hpp
 #include<string.h>
 #include<type_traits>
 

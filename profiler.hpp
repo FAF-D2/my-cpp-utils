@@ -1,5 +1,5 @@
-#ifndef _PROFILER_HPP
-#define _PROFIELR_HPP
+#ifndef profiler_hpp
+#define profiler_hpp
 #include<malloc.h>
 #include<functional>
 #include<type_traits>
@@ -79,7 +79,7 @@ _INFO_LIST _INFO_LIST::head;
 _INFO_LIST* _INFO_LIST::tail = &head;
 unsigned int _INFO_LIST::total_size = 0;
 
-void memory_report() {
+inline void memory_report() {
     printf("----memory info----\n");
     printf("rest memory: %u\n", _INFO_LIST::total_size);
     for (auto ptr = _INFO_LIST::head.next; ptr != nullptr; ptr = ptr->next) {
@@ -88,7 +88,7 @@ void memory_report() {
     printf("----memory info----\n");
 }
 
-void* operator new(size_t size, const char* file, unsigned int line) {
+inline void* operator new(size_t size, const char* file, unsigned int line) {
     if (size == 0) {
         printf("File [%s] line %u, err: [new for 0 byte]\n", file, line);
         assert(false);
@@ -102,7 +102,7 @@ void* operator new(size_t size, const char* file, unsigned int line) {
     }
     return ptr;
 }
-void* operator new[](size_t size, const char* file, unsigned int line) {
+inline void* operator new[](size_t size, const char* file, unsigned int line) {
     if (size == 0) {
         printf("File [%s] line %u, err: [new for 0 byte]\n", file, line);
         assert(false);
@@ -117,12 +117,12 @@ void* operator new[](size_t size, const char* file, unsigned int line) {
     return ptr;
 }
 
-void operator delete(void* p) {
+inline void operator delete(void* p) {
     _INFO_LIST::_DELETE_NEW_INFO(p, 0);
     free(p);
 }
 
-void operator delete[](void* p) {
+inline void operator delete[](void* p) {
     _INFO_LIST::_DELETE_NEW_INFO(p, 1);
     free(p);
 }

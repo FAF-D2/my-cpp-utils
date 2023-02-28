@@ -1,5 +1,5 @@
-#ifndef _CORO_HPP
-#define _CORO_HPP
+#ifndef coro_hpp
+#define coro_hpp
 #include<type_traits>
 #include<utility>
 #include<new>
