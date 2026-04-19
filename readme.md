@@ -80,4 +80,7 @@ printf("after json: %s\n", payload.dump().c_str());
 payload = xjson::parse(json_str.c_str(), json_str.size());
 ```
 
+### | **xmeta.hpp** |
+1. Be used to do some meta programming
+
 ### · Anyway, it is just a simple cpp utils lib for those who want to construct their own lib to learn
