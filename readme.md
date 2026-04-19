@@ -3,83 +3,81 @@
 
 ## | Code Introduction |
 
-### | **coro.hpp** |
-1. Simple coroutine implemented in windows, supply for c++11 (no linux now)
-2. Core classes: *io_context*, *Awaiter*, *Coroutine*
-3. self-defined keyword like $yield(x), $await(x), ..., the code example is as follow
+### | **xnet.hpp** |
+1. linux iouring with c++20 coroutine
 ```cpp
 // a simple echo tcp server
-// a little bit troublesome but it works better than using threads
-struct Echo: public Coroutine{
-    async_socket client;
-    unsigned int ret;
-    char buf[BUFFER_SIZE];
-    Echo(async_socket&& s):
-    client(std::forward<async_socket>(s)) ret(BUFFER_SIZE), buf()
-    {}
-    void reusme(){
-        $begin(){
-            while(true){
-                ret = 128;
-                $await(client.recv(this, buf, &ret)); // await for client send
-                $await(client.send(this, buf, ret)); // await for client recv
-            }
+// same as golang go the func
+// for full code see test/test_echo.cpp
+xnet::detached_task echo(xnet::TCPServer conn){
+    char buf[64];
+    while(true){
+        auto result = co_await conn.recv(buf, sizeof(buf), 0);
+        if(result.rst() || *result == 0){
+            // connection closed
+            co_return;
+        }
+        else if(result.err){
+            // error handler
+            co_return;
+        }
+
+        auto sended = co_await conn.send(buf, *result, 0);
+        if(sended.err && !sended.rst()){
+            // error handler
+            co_return;
         }
     }
-};
+}
 
-struct listener: public Coroutine{
-    async_acceptor acceptor;
-    async_socket client;
-    listener(): acceptor(), client()
-    {}
-    void resume(){
-        $begin(){
-            std::cout << acceptor.port() << std::endl;
-            while(true){
-                $await(acceptor.accept(this, &client)); // await for client connection
-                $spawn(Echo(std::move(client))); // spawn a new coroutine
-            }
-        }
-    }
-};
+// a simple all and any operator use
+// same behavior like promise.all promise.any in javascripy
+// for full code see test/test_operator.cpp
+xnet::task<> anytester(xnet::AsyncTimer& timer){
+    auto result = co_await any(
+        coro1(timer, 2),
+        coro2(timer, 5),
+        coro2(timer, 10)
+    );
+    auto& r = result.get<0>();
+    printf("done with %d\n", *r);
+    result.destroy<0>();
+}
 
-int main(){
-    io_context ctx; // define a scheduler
-    ctx.spawn(listener());
-    ctx.run();
-    return 0;
+xnet::task<> alltester(xnet::AsyncTimer& timer){
+    auto& result = co_await allSettled(
+        coro1(timer, 2),
+        coro2(timer, 5),
+        coro2(timer, 10)
+    );
+    auto& [r1, r2, r3] = result;
+    printf("done with %d, %d, %d\n", *r1, *r2, *r3);
 }
 ```
-### | **stringv.hpp** |
-1. Simple 16-bytes string implemented, supply for c++11
-2. Just a self-implementation for my json lib *(so use std::string in most cases)*
-3. a lot of helpful functions not implemented (I will continue to improve it if I need those features)
+### | **xstring.hpp** |
+1. simple 16-bytes string type implemented, supply for c++11
+2. just a self-implementation for my json lib *(so use std::string in most cases)*
+3. a lot of helpful functions not implemented (continuously improving...)
 
-
-### | **profiler.hpp** |
-1. A simplest profiler for detecting memory-leak and time-consuming when contructing my own lib
-2. supply for c++14, can' t work on placement-new and malloc
-3. the code example is as follow
+### | **xjson.hpp** |
+1. modern json c++14 library, aligned with python json library
+2. be careful that the xjson::parse will not do anything inverted in the string (no \\\" -> \", no utf-8, nothing but raw string accepted from raw json string)
 ```cpp
-// memory leak detect
-#define _MEMORY_CHECK_
-#define _NEW_DETAIL_    // define this macro will show all the new detail(file, line)
-#include"profiler.hpp"
-memory_report() // cout the memory not deleted yet.
+// see test/test_json.cpp for full use
+xjson payload = {
+    {"name", "xjson"},
+    {"support", 14},
+    {"byte", 16},
+    {"something", xjson::Array({1, 2, 3.1415, false, nullptr})}
+};
+auto json_str = payload.dump();
+payload["name"] = "myxjson";
+payload["newfield"] = xjson::Array({"anything", true});
+printf("dumped json: %s\n", json_str.c_str());
+printf("after json: %s\n", payload.dump().c_str());
 
-// time check
-#define _TIME_CHECK_
-#include"profiler.hpp"
-// self-defined macro, report the time consumed when leaving the "with" statement
-$with(TimerCounter t){
-    // do something
-}
-// with statement exit!, auto cout the time
+// payload = xjson::parse(json_str);
+payload = xjson::parse(json_str.c_str(), json_str.size());
 ```
-
-### | **lazyjson.hpp** |
-1. still trying to implement it (I have to admit it is a little bit difficult without STL)
-
 
 ### · Anyway, it is just a simple cpp utils lib for those who want to construct their own lib to learn
