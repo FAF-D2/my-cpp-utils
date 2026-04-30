@@ -681,9 +681,9 @@ public:
         return *this;
     }
 
-    template<class T, typename std::enable_if<std::is_same<decay_t<T>, String>::value, bool>::type = true>
+    template<class T, typename std::enable_if<std::is_same<decay_t<T>, String>::value || std::is_constructible<decay_t<T>, String>::value, bool>::type = true>
     xjson(T&& x) noexcept: s(new String(std::forward<T>(x))), type(xjson::TYPE::STRING){}
-    template<class T, typename std::enable_if<std::is_same<decay_t<T>, String>::value, bool>::type = true>
+    template<class T, typename std::enable_if<std::is_same<decay_t<T>, String>::value || std::is_constructible<decay_t<T>, String>::value, bool>::type = true>
     xjson& operator=(T&& x) noexcept{
         this->~xjson();
         s = new String(std::forward<T>(x));
@@ -700,14 +700,14 @@ public:
         type.type = xjson::TYPE::ARRAY;
         return *this;
     }
-    template<class T, typename std::enable_if<!check_type<decay_t<T>>::value && is_iterable<decay_t<T>>::isarray, bool>::type = true>
+    template<class T, typename std::enable_if<!check_type<decay_t<T>>::value && !std::is_constructible<decay_t<T>, String>::value && is_iterable<decay_t<T>>::isarray, bool>::type = true>
     xjson(T&& x) noexcept: a(new Array()), type(xjson::TYPE::ARRAY){
         a->reserve(x.size());
         for (const auto& v : x) {
             this->a->emplace_back(v);
         }
     }
-    template<class T, typename std::enable_if<!check_type<decay_t<T>>::value && is_iterable<decay_t<T>>::isarray, bool>::type = true>
+    template<class T, typename std::enable_if<!check_type<decay_t<T>>::value && !std::is_constructible<decay_t<T>, String>::value && is_iterable<decay_t<T>>::isarray, bool>::type = true>
     xjson& operator=(T&& x){
         this->~xjson();
         a = new Array();
